@@ -1,10 +1,21 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse
+import requests
 from datetime import datetime
 
 app = FastAPI()
 
-entry_count = 0
+# 🔗 Replace with your Apps Script URL
+BASE_GSHEET_URL = "https://script.google.com/macros/s/AKfycbz1IXrPO4_hY2PAUEqSi9utNcuWVLSpKna_Fu8wX4L5wyncefOu0ejTSCiWl61sHd7K/exec"
+
+
+# 🔁 Background update (increment count)
+def update_gsheet(qr_type: str):
+    try:
+        url = f"{BASE_GSHEET_URL}?action=increment&type={qr_type}"
+        requests.get(url, timeout=3)
+    except Exception as e:
+        print("GSHEET ERROR:", e)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -13,11 +24,10 @@ def home():
     <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome</title>
         <style>
             body {
                 margin: 0;
-                font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                font-family: sans-serif;
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -26,21 +36,10 @@ def home():
                 color: white;
                 text-align: center;
             }
-            .container {
-                padding: 20px;
-            }
-            h1 {
-                font-size: 28px;
-                margin-bottom: 10px;
-            }
-            p {
-                font-size: 18px;
-                opacity: 0.8;
-            }
         </style>
     </head>
     <body>
-        <div class="container">
+        <div>
             <h1>Welcome</h1>
             <p>Santulit Kishan Mahotsav</p>
         </div>
@@ -49,53 +48,61 @@ def home():
     """
 
 
+# 🎯 Scan endpoint
 @app.get("/open-entry", response_class=HTMLResponse)
-def open_entry(request: Request):
-    global entry_count
-    entry_count += 1
+def open_entry(request: Request, background_tasks: BackgroundTasks, type: str = "A"):
 
-    print(f"Entry #{entry_count} | IP: {request.client.host} | Time: {datetime.now()}")
+    # ⚡ increment in background
+    background_tasks.add_task(update_gsheet, type)
+
+    # 🔄 fetch current count
+    try:
+        url = f"{BASE_GSHEET_URL}?type={type}"
+        res = requests.get(url, timeout=2)
+        count = res.json().get("count", "N/A")
+    except:
+        count = "..."
+
+    print(f"Scan | Type: {type} | IP: {request.client.host} | Time: {datetime.now()}")
 
     return f"""
     <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Entry Allowed</title>
         <style>
             body {{
                 margin: 0;
-                font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                font-family: sans-serif;
                 display: flex;
                 justify-content: center;
                 align-items: center;
                 height: 100vh;
-                background-color: #16a34a;
+                background: #16a34a;
                 color: white;
                 text-align: center;
             }}
-            .card {{
-                padding: 30px 20px;
+            .box {{
+                padding: 20px;
             }}
             .icon {{
                 font-size: 60px;
-                margin-bottom: 15px;
             }}
             .title {{
-                font-size: 28px;
-                font-weight: 600;
-                margin-bottom: 10px;
+                font-size: 26px;
+                font-weight: bold;
             }}
             .count {{
                 font-size: 16px;
-                opacity: 0.9;
+                margin-top: 10px;
             }}
         </style>
     </head>
     <body>
-        <div class="card">
+        <div class="box">
             <div class="icon">✅</div>
             <div class="title">Entry Allowed</div>
-            <div class="count">Total Entries: {entry_count}</div>
+            <div>Type: {type}</div>
+            <div class="count">Count: {count}</div>
         </div>
     </body>
     </html>
