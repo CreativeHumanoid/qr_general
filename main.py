@@ -6,7 +6,7 @@ from datetime import datetime
 app = FastAPI()
 
 # 🔗 Replace with your Apps Script URL
-BASE_GSHEET_URL = "https://script.google.com/macros/s/AKfycbz1IXrPO4_hY2PAUEqSi9utNcuWVLSpKna_Fu8wX4L5wyncefOu0ejTSCiWl61sHd7K/exec"
+BASE_GSHEET_URL = "https://script.google.com/macros/s/AKfycbxxIjCm7Wkz0_ItghMJYlapbNNlhYxRhHdFbRx7H-LYGYaBHuiWECV_ZjeN-R_0V9QZ/exec"
 
 
 # 🔁 Background update (increment count)
